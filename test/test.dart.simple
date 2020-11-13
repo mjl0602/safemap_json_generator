@@ -1,0 +1,177 @@
+import 'package:safemap/safemap.dart';
+
+class Root {
+  final int id;
+  final double score;
+  final String c;
+  final List<List> list;
+  final Info info;
+  final List<Record> record;
+
+  Root({
+    this.id,
+    this.score,
+    this.c,
+    this.list,
+    this.info,
+    this.record,
+  });
+
+  Root.fromJson(Map<String, dynamic> json) : this.fromSafeMap(SafeMap(json));
+
+  Root.fromSafeMap(SafeMap safeMap)
+      : this(
+          id: safeMap['id'].intValue,
+          score: safeMap['score'].doubleValue,
+          c: safeMap['c'].string,
+          list: safeMap['list']
+              .list
+              ?.map<List>((json) => List.fromJson(json))
+              ?.toList(),
+          info: safeMap['info'].map,
+          record: safeMap['record']
+              .list
+              ?.map<Record>((json) => Record.fromJson(json))
+              ?.toList(),
+        );
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'id': id,
+        'score': score,
+        'c': c,
+        'list': list,
+        'info': info,
+        'record': record,
+      };
+
+  @override
+  String toString() {
+    return json.encode(this);
+  }
+}
+
+class Info {
+  final int a;
+  final String name;
+
+  Info({
+    this.a,
+    this.name,
+  });
+
+  Info.fromJson(Map<String, dynamic> json) : this.fromSafeMap(SafeMap(json));
+
+  Info.fromSafeMap(SafeMap safeMap)
+      : this(
+          a: safeMap['a'].intValue,
+          name: safeMap['name'].string,
+        );
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'a': a,
+        'name': name,
+      };
+
+  @override
+  String toString() {
+    return json.encode(this);
+  }
+}
+
+class Record {
+  final int id;
+  final String title;
+  final List<Past> past;
+
+  Record({
+    this.id,
+    this.title,
+    this.past,
+  });
+
+  Record.fromJson(Map<String, dynamic> json) : this.fromSafeMap(SafeMap(json));
+
+  Record.fromSafeMap(SafeMap safeMap)
+      : this(
+          id: safeMap['id'].intValue,
+          title: safeMap['title'].string,
+          past: safeMap['past']
+              .list
+              ?.map<Past>((json) => Past.fromJson(json))
+              ?.toList(),
+        );
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'id': id,
+        'title': title,
+        'past': past,
+      };
+
+  @override
+  String toString() {
+    return json.encode(this);
+  }
+}
+
+class Past {
+  final List<RecordDetail> recordDetail;
+
+  Past({
+    this.recordDetail,
+  });
+
+  Past.fromJson(Map<String, dynamic> json) : this.fromSafeMap(SafeMap(json));
+
+  Past.fromSafeMap(SafeMap safeMap)
+      : this(
+          recordDetail: safeMap['recordDetail']
+              .list
+              ?.map<RecordDetail>((json) => RecordDetail.fromJson(json))
+              ?.toList(),
+        );
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'recordDetail': recordDetail,
+      };
+
+  @override
+  String toString() {
+    return json.encode(this);
+  }
+}
+
+class RecordDetail {
+  final int id;
+  final String title;
+  final List<int> past;
+
+  RecordDetail({
+    this.id,
+    this.title,
+    this.past,
+  });
+
+  RecordDetail.fromJson(Map<String, dynamic> json) : this.fromSafeMap(SafeMap(json));
+
+  RecordDetail.fromSafeMap(SafeMap safeMap)
+      : this(
+          id: safeMap['id'].intValue,
+          title: safeMap['title'].string,
+          past: safeMap['past']
+              .list
+              ?.map<int>((json) => int.fromJson(json))
+              ?.toList(),
+        );
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'id': id,
+        'title': title,
+        'past': past,
+      };
+
+  @override
+  String toString() {
+    return json.encode(this);
+  }
+}
+Exited
