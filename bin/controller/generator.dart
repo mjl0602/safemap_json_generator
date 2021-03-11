@@ -1,15 +1,20 @@
 import 'dart:convert';
 
 class SafeMapFileGenarater {
-  static String fileHeader = "import 'package:safemap/safemap.dart';\n\n";
+  /// 注释对照
+  final Map<String, String> commentMap;
+
+  String fileHeader = "import 'package:safemap/safemap.dart';\n\n";
+
+  SafeMapFileGenarater([this.commentMap = const {}]);
 
   /// 解析JsonClassInfo，并生成类内容
-  static String _oneClassContentFromClass(_JsonClassInfo info) {
-    return _oneClassContentBuilder(
+  String oneClassContentFromClass(JsonClassInfo info) {
+    return oneClassContentBuilder(
       className: info.className,
       property: info.props.map(
         (p) {
-          return 'final ${p.className} ${p.propertyName};';
+          return '\n  /// ${commentMap[p.propertyName] ?? p.propertyName} \n  final ${p.className} ${p.propertyName};';
         },
       ).join('\n  '),
       init: info.props.map(
@@ -37,7 +42,7 @@ class SafeMapFileGenarater {
   }
 
   /// 生成类内容
-  static String _oneClassContentBuilder({
+  static String oneClassContentBuilder({
     String className,
     String property,
     String init,
@@ -78,51 +83,66 @@ class $className {
     );
     var content = fileHeader;
     for (var c in allClassList) {
-      var res = _oneClassContentFromClass(c);
+      var res = oneClassContentFromClass(c);
       content += '$res\n';
     }
     print(content);
   }
 }
 
-enum _JsonValueType {
+enum JsonValueType {
   any,
   string,
   integer,
+  boolean,
   float,
   list,
   map,
 }
 
-extension _JsonValueTypeBuilder on _JsonValueType {
+extension JsonValueTypeBuilder on JsonValueType {
   static fromValue(dynamic value) {
-    if (value == null) return _JsonValueType.any;
-    if (value is String) return _JsonValueType.string;
-    if (value is int) return _JsonValueType.integer;
-    if (value is double) return _JsonValueType.float;
-    if (value is List) return _JsonValueType.list;
-    if (value is Map) return _JsonValueType.map;
+    if (value == null) return JsonValueType.any;
+    if (value is bool) return JsonValueType.boolean;
+    if (value is String) return JsonValueType.string;
+    if (value is int) return JsonValueType.integer;
+    if (value is double) return JsonValueType.float;
+    if (value is List) return JsonValueType.list;
+    if (value is Map) return JsonValueType.map;
+  }
+
+  static fromYapiName(String value) {
+    if (value.contains('[]')) return JsonValueType.list;
+    if (value == "boolean") return JsonValueType.boolean;
+    if (value == "string") return JsonValueType.string;
+    if (value == "integer") return JsonValueType.integer;
+    if (value == "number") return JsonValueType.float;
+    if (value == "object") return JsonValueType.map;
+    return JsonValueType.any;
   }
 
   String get name {
     switch (this) {
-      case _JsonValueType.any:
+      case JsonValueType.any:
         return 'dynamic';
         break;
-      case _JsonValueType.string:
+      case JsonValueType.string:
         return 'String';
         break;
-      case _JsonValueType.integer:
+      case JsonValueType.integer:
         return 'int';
         break;
-      case _JsonValueType.float:
+      case JsonValueType.float:
         return 'double';
         break;
-      case _JsonValueType.list:
+      case JsonValueType.list:
         return 'List';
         break;
-      case _JsonValueType.map:
+      case JsonValueType.map:
         return 'Map';
+        break;
+      case JsonValueType.boolean:
+        return 'Bool';
         break;
     }
     return 'dynamic';
@@ -130,23 +150,26 @@ extension _JsonValueTypeBuilder on _JsonValueType {
 
   String get safeMapGetterType {
     switch (this) {
-      case _JsonValueType.any:
+      case JsonValueType.any:
         return 'value';
         break;
-      case _JsonValueType.string:
+      case JsonValueType.string:
         return 'string';
         break;
-      case _JsonValueType.integer:
+      case JsonValueType.integer:
         return 'intValue';
         break;
-      case _JsonValueType.float:
+      case JsonValueType.float:
         return 'doubleValue';
         break;
-      case _JsonValueType.list:
+      case JsonValueType.list:
         return 'list';
         break;
-      case _JsonValueType.map:
+      case JsonValueType.map:
         return 'map';
+        break;
+      case JsonValueType.boolean:
+        return 'boolean';
         break;
     }
     return 'value';
@@ -169,6 +192,10 @@ extension _ListTypeString on List {
       if (f is String) {
         this.cast<String>();
         return 'String';
+      }
+      if (f is bool) {
+        this.cast<bool>();
+        return 'bool';
       }
       if (f is int) {
         this.cast<int>();
@@ -194,8 +221,8 @@ extension _ListTypeString on List {
 /// 分析结果
 class _JsonAnalysis {
   /// 分析
-  static List<_JsonClassInfo> encode(Map<String, dynamic> jsonMap) {
-    List<_JsonClassInfo> result = [];
+  static List<JsonClassInfo> encode(Map<String, dynamic> jsonMap) {
+    List<JsonClassInfo> result = [];
     find(jsonMap, 'Root', (name, content) {
       result.add(content);
     });
@@ -206,10 +233,10 @@ class _JsonAnalysis {
   static find(
     Map<String, dynamic> jsonMap,
     String rootName,
-    void Function(String, _JsonClassInfo) onFind,
+    void Function(String, JsonClassInfo) onFind,
   ) {
     rootName ??= "Root";
-    var result = _JsonClassInfo(
+    var result = JsonClassInfo(
       rootName,
       <JsonPropertyInfo>[].toSet(),
     );
@@ -251,13 +278,13 @@ class _JsonAnalysis {
 }
 
 /// js的一个类
-class _JsonClassInfo {
+class JsonClassInfo {
   final String name;
   final Set<JsonPropertyInfo> props;
 
   String get className => name.firstToUp;
 
-  _JsonClassInfo(this.name, this.props);
+  JsonClassInfo(this.name, this.props);
 
   @override
   String toString() {
@@ -268,7 +295,7 @@ class _JsonClassInfo {
   int get hashCode => '$name'.hashCode;
 
   operator ==(dynamic other) {
-    return (other is _JsonClassInfo) ? other.hashCode == hashCode : false;
+    return (other is JsonClassInfo) ? other.hashCode == hashCode : false;
   }
 }
 
@@ -278,16 +305,16 @@ class JsonPropertyInfo {
   final String key;
 
   /// Json值的类型
-  final _JsonValueType valueType;
+  final JsonValueType valueType;
 
   /// 范型T，不应当直接用于生成
   String childT;
 
-  bool get isMap => valueType == _JsonValueType.map;
-  bool get isList => valueType == _JsonValueType.list;
+  bool get isMap => valueType == JsonValueType.map;
+  bool get isList => valueType == JsonValueType.list;
   bool get isNotNativeList => isList && !isNativeList;
   bool get isNativeList =>
-      valueType == _JsonValueType.list &&
+      valueType == JsonValueType.list &&
       (childT == "int" ||
           childT == 'double' ||
           childT == 'String' ||
@@ -329,7 +356,7 @@ class JsonPropertyInfo {
     this.key,
     dynamic value, [
     this.childT,
-  ]) : valueType = _JsonValueTypeBuilder.fromValue(value);
+  ]) : valueType = JsonValueTypeBuilder.fromValue(value);
 
   @override
   String toString() {
@@ -350,44 +377,44 @@ class JsonPropertyInfo {
   }
 }
 
-/// 模板代码
-String _() => """
-class Name {
-  final String id;
-  final String name;
-  final String classification;
-  final List<CreatedAt> createdAt;
+// /// 模板代码
+// String _() => """
+// class Name {
+//   final String id;
+//   final String name;
+//   final String classification;
+//   final List<CreatedAt> createdAt;
 
-  Name({
-    this.id,
-    this.name,
-    this.classification,
-    this.createdAt,
-  });
+//   Name({
+//     this.id,
+//     this.name,
+//     this.classification,
+//     this.createdAt,
+//   });
 
-  Name.fromJson(Map<String, dynamic> json) : this.fromSafeMap(SafeMap(json));
+//   Name.fromJson(Map<String, dynamic> json) : this.fromSafeMap(SafeMap(json));
 
-  Name.fromSafeMap(SafeMap safeMap)
-      : this(
-          id: safeMap['id'].string,
-          name: safeMap['name'].string,
-          classification: safeMap['classification'].string,
-          createdAt: safeMap['createdAt']
-              .list
-              ?.map<CreatedAt>((json) => CreatedAt.fromJson(json))
-              ?.toList(),
-        );
+//   Name.fromSafeMap(SafeMap safeMap)
+//       : this(
+//           id: safeMap['id'].string,
+//           name: safeMap['name'].string,
+//           classification: safeMap['classification'].string,
+//           createdAt: safeMap['createdAt']
+//               .list
+//               ?.map<CreatedAt>((json) => CreatedAt.fromJson(json))
+//               ?.toList(),
+//         );
 
-  Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'name': name,
-        'classification': classification,
-        'createdAt': createdAt,
-      };
+//   Map<String, dynamic> toJson() => <String, dynamic>{
+//         'id': id,
+//         'name': name,
+//         'classification': classification,
+//         'createdAt': createdAt,
+//       };
 
-  @override
-  String toString() {
-    return json.encode(this);
-  }
-}
-""";
+//   @override
+//   String toString() {
+//     return json.encode(this);
+//   }
+// }
+// """;
