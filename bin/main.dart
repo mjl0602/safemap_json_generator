@@ -46,7 +46,12 @@ main(List<String> args) async {
   var map = json.decode(jsonString);
   var content = map['data']['res_body'];
   var res = json.decode(content);
-  var data = res['properties']['data']['properties'] as Map;
+  var data = res['properties']['data']['properties'] as Map ??
+      res['properties']['data']['items']['properties'] as Map;
+  if (data == null) {
+    print(res);
+    print(data);
+  }
   Set<JsonPropertyInfo> props = Set();
   Map<String, String> commentMap = {};
   for (var key in data.keys) {
@@ -64,13 +69,17 @@ main(List<String> args) async {
     jsonClassInfo,
   );
 
+  finalRes =
+      "import 'dart:convert';\nimport 'package:safemap/safemap.dart';\n\n"
+      "$finalRes";
+
   // print(finalRes);
   var result = await Process.run('bash', ['-c', 'echo "$finalRes" | pbcopy']);
   print(result.exitCode);
   print(result.stdout);
   print(result.stderr);
   if (result.exitCode == 0) {
-    print('代码已经粘贴到剪贴板');
+    print('代码已经复制到剪贴板');
   }
 }
 
