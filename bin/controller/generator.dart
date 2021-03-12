@@ -142,7 +142,7 @@ extension JsonValueTypeBuilder on JsonValueType {
         return 'Map';
         break;
       case JsonValueType.boolean:
-        return 'Bool';
+        return 'bool';
         break;
     }
     return 'dynamic';
